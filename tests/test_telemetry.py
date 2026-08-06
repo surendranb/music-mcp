@@ -34,3 +34,32 @@ def test_send_telemetry_noop_when_disabled(monkeypatch):
     with mock.patch.dict("os.environ", {"MUSIC_MCP_TELEMETRY": "false"}, clear=True):
         monkeypatch.setattr(t, "TELEMETRY_DISABLED", t._telemetry_disabled())
         assert t.send_telemetry("mcp_started") is None
+
+
+def test_install_source_environment_wins(monkeypatch, tmp_path):
+    source_file = tmp_path / ".music_mcp" / "source"
+    source_file.parent.mkdir(parents=True)
+    source_file.write_text("readme")
+    monkeypatch.setattr(t.Path, "home", lambda: tmp_path)
+    with mock.patch.dict("os.environ", {"MUSIC_MCP_SOURCE": "setup"}, clear=True):
+        assert t._install_source() == ("setup", "setup")
+
+
+def test_install_source_marker_file_fallback(monkeypatch, tmp_path):
+    """curl|bash installer writes ~/.music_mcp/source; env is absent on agent
+    launches, so the server falls back to the marker to keep attribution."""
+    source_file = tmp_path / ".music_mcp" / "source"
+    source_file.parent.mkdir(parents=True)
+    source_file.write_text("setup")
+    monkeypatch.setattr(t.Path, "home", lambda: tmp_path)
+    with mock.patch.dict("os.environ", {}, clear=True):
+        assert t._install_source() == ("setup", "setup")
+
+
+def test_install_source_unknown_bucket(monkeypatch, tmp_path):
+    source_file = tmp_path / ".music_mcp" / "source"
+    source_file.parent.mkdir(parents=True)
+    source_file.write_text("some-weird-channel")
+    monkeypatch.setattr(t.Path, "home", lambda: tmp_path)
+    with mock.patch.dict("os.environ", {}, clear=True):
+        assert t._install_source() == ("some-weird-channel", "other")

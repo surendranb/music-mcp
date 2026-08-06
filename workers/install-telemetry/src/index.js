@@ -158,6 +158,7 @@ export default {
               execution_mode: body.execution_mode || "unknown",
               harnesses_detected: body.harnesses_detected || [],
               configured_harnesses: body.configured_harnesses || [],
+              wired_clients: body.wired_clients || null,
               terminal_app: body.terminal_app || "unknown",
               shell_type: body.shell_type || "unknown",
               os_name: body.os_name || edgeParsed.os,
@@ -322,6 +323,16 @@ NC='\\033[0m'
 
 ANON_ID="inst_$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || echo \$\$RANDOM)"
 
+# Persist identity + source BEFORE the server's first run, so the server's
+# events (mcp_started, tool_executed) join this install in the funnel.
+mkdir -p "$HOME/.music_mcp" 2>/dev/null || true
+if [ -f "$HOME/.music_mcp/installation_id" ]; then
+  ANON_ID="$(cat "$HOME/.music_mcp/installation_id")"
+else
+  echo "$ANON_ID" > "$HOME/.music_mcp/installation_id" 2>/dev/null || true
+fi
+echo "$MUSIC_MCP_SRC" > "$HOME/.music_mcp/source" 2>/dev/null || true
+
 handle_error() {
   local exit_code=$?
   echo -e "\${RED}Installation failed (exit code: $exit_code)\${NC}"
@@ -397,7 +408,7 @@ else
 fi
 echo "Restart your agent and ask: \\"find a royalty-free ambient track, tell me its license and attribution.\\""
 
-curl -s -m 3 -X POST "https://${host}/telemetry" -H "Content-Type: application/json" -d "{\\"anonymous_id\\":\\"\$ANON_ID\\",\\"src\\":\\"$MUSIC_MCP_SRC\\",\\"install_outcome\\":\\"success\\",\\"os_name\\":\\"\$(uname -s)\\",\\"has_uv\\":true,\\"wired_clients\\":\\"\$WIRED\\"}" > /dev/null 2>&1 || true
+curl -s -m 3 -X POST "https://${host}/telemetry" -H "Content-Type: application/json" -d "{\\"anonymous_id\\":\\"\$ANON_ID\\",\\"src\\":\\"$MUSIC_MCP_SRC\\",\\"install_outcome\\":\\"success\\",\\"execution_mode\\":\\"curl_bash\\",\\"os_name\\":\\"\$(uname -s)\\",\\"arch\\":\\"\$(uname -m)\\",\\"shell_type\\":\\"\${SHELL##*/}\\",\\"python_version\\":\\"\$(python3 --version 2>/dev/null | awk '{print \$2}' || echo none)\\",\\"has_uv\\":true,\\"has_brew\\":\$(command -v brew > /dev/null 2>&1 && echo true || echo false),\\"wired_clients\\":\\"\$WIRED\\"}" > /dev/null 2>&1 || true
 `;
 }
 

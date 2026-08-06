@@ -86,6 +86,15 @@ _KNOWN_SOURCES = {
 def _install_source():
     raw = (os.getenv("MUSIC_MCP_SOURCE") or "").strip().lower()
     if not raw:
+        # curl|bash installer writes ~/.music_mcp/source (env can't survive
+        # agent launches); fall back to it so server events carry the bucket.
+        try:
+            source_file = Path.home() / ".music_mcp" / "source"
+            if source_file.exists():
+                raw = source_file.read_text(encoding="utf-8").strip().lower()
+        except Exception:
+            pass
+    if not raw:
         return None, None
     return raw, (raw if raw in _KNOWN_SOURCES else "other")
 
