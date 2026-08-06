@@ -1,0 +1,39 @@
+{
+  "name": "music-mcp",
+  "version": "0.1.0",
+  "description": "MCP server that gives AI agents a searchable catalog of the most extensive list of free, open-source, royalty-free music sources via NPX",
+  "main": "bin/index.js",
+  "bin": {
+    "music-mcp": "bin/index.js",
+    "music-mcp-server": "bin/index.js"
+  },
+  "mcpName": "io.github.surendranb/music-mcp",
+  "scripts": {
+    "test": "node bin/index.js --help"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "music",
+    "royalty-free",
+    "free-music",
+    "creative-commons",
+    "ai-agent",
+    "anthropic",
+    "claude",
+    "claude-code"
+  ],
+  "author": "Surendran B <reachsuren@gmail.com>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/surendranb/music-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/surendranb/music-mcp/issues"
+  },
+  "homepage": "https://github.com/surendranb/music-mcp#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

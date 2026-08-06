@@ -1,0 +1,36 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.surendranb/music-mcp",
+  "description": "Music MCP server for AI agents: searchable catalog of free, open-source, royalty-free music across Internet Archive, Wikimedia Commons, Jamendo, Freesound, and Incompetech — every result with license and attribution.",
+  "repository": {
+    "url": "https://github.com/surendranb/music-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "music-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "MUSIC_MCP_JAMENDO_CLIENT_ID",
+          "description": "Free Jamendo API client ID (developer.jamendo.com). Enables the Jamendo source (hundreds of thousands of CC tracks).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false
+        },
+        {
+          "name": "MUSIC_MCP_FREESOUND_TOKEN",
+          "description": "Free Freesound API token (freesound.org/apiv2/apply). Enables the Freesound source (CC loops and sounds).",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}
