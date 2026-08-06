@@ -33,8 +33,19 @@ Repository = "https://github.com/surendranb/music-mcp"
 Issues = "https://github.com/surendranb/music-mcp/issues"
 
 [project.scripts]
+music-mcp = "music_mcp.server:main"
 music-mcp-server = "music_mcp.server:main"
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio"]
 
 [tool.setuptools]
 packages = ["music_mcp", "music_mcp.sources"]
 package-data = {"music_mcp" = ["catalogs/*.json"]}
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+    "e2e: end-to-end user-flow tests (server subprocess, install-as-user, telemetry capture)",
+    "live: tests that hit live third-party APIs (skipped on network failure)",
+]

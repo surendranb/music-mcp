@@ -17,7 +17,8 @@ Every result carries `license`, `license_url`, `audio_url` and a ready-to-paste 
 ## Quickstart
 
 ```bash
-# 1-line installer (installs uv + music-mcp)
+# 1-line installer: installs uv + music-mcp, then wires it into the
+# agents you already have (Claude Code, Claude Desktop, Cursor, Gemini CLI)
 curl -fsSL "https://music-mcp-install-telemetry.reachsuren.workers.dev/?src=readme" | bash
 
 # or any of:

@@ -30,8 +30,27 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e .
-          python -m pip install pytest
-          python -m pytest -q
+          python -m pip install pytest pytest-asyncio
+          python -m pytest -q -m "not e2e and not live"
+
+  e2e:
+    name: E2E user-flow
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install and run e2e suite
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+          python -m pip install pytest pytest-asyncio
+          python -m pytest -q -m "e2e and not live" tests/e2e
 
   npm-bridge:
     name: npm bridge smoke

@@ -282,7 +282,7 @@ function getSetupHtmlPage() {
 
     <div class="card">
       <h2><span class="step-num">1</span> Install</h2>
-      <pre>curl -fsSL "https://music-mcp.builditwithai.xyz/?src=setup" | bash</pre>
+      <pre>curl -fsSL "https://music-mcp-install-telemetry.reachsuren.workers.dev/?src=setup" | bash</pre>
       <p>Or manually: <code>uvx music-mcp</code> · <code>npx music-mcp</code> · <code>pip install music-mcp</code></p>
     </div>
 
@@ -307,7 +307,7 @@ function getSetupHtmlPage() {
 }
 
 function getInstallerScript(hostname, src) {
-  const host = hostname || "music-mcp.builditwithai.xyz";
+  const host = hostname || "music-mcp-install-telemetry.reachsuren.workers.dev";
   const srcValue = src || "installer";
   return `#!/usr/bin/env bash
 # Music MCP Universal AI Installer
@@ -341,12 +341,63 @@ echo -e "\${GREEN}Installing music-mcp...\${NC}"
 uv tool install --force music-mcp
 uvx music-mcp --version > /dev/null 2>&1 || true
 
-echo -e "\${GREEN}Done. Add to your agent:\${NC}"
-echo "Claude Code: claude mcp add --transport stdio music-mcp -- uvx --from music-mcp music-mcp-server"
-echo "Cursor: open the MCP settings and add: uvx --from music-mcp music-mcp-server"
-echo "Gemini: gemini config add music-mcp \\"uvx --from music-mcp music-mcp-server\\""
+# Wire into whatever harnesses are present — no prompts, nothing to remember.
+WIRED=""
 
-curl -s -m 3 -X POST "https://${host}/telemetry" -H "Content-Type: application/json" -d "{\\"anonymous_id\\":\\"\$ANON_ID\\",\\"src\\":\\"$MUSIC_MCP_SRC\\",\\"install_outcome\\":\\"success\\",\\"os_name\\":\\"\$(uname -s)\\",\\"has_uv\\":true}" > /dev/null 2>&1 || true
+wire_json() {
+  python3 - "$1" <<'PY'
+import json, os, sys
+path = sys.argv[1]
+os.makedirs(os.path.dirname(path), exist_ok=True)
+data = {}
+try:
+    with open(path) as f:
+        data = json.load(f)
+except Exception:
+    pass
+if not isinstance(data, dict):
+    data = {}
+servers = data.setdefault("mcpServers", {})
+if not isinstance(servers, dict):
+    servers = {}
+    data["mcpServers"] = servers
+if "music-mcp" in servers:
+    sys.exit(0)
+servers["music-mcp"] = {"command": "uvx", "args": ["--from", "music-mcp", "music-mcp-server"]}
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+print("ok")
+PY
+}
+
+if command -v claude > /dev/null 2>&1; then
+  claude mcp add --transport stdio music-mcp -- uvx --from music-mcp music-mcp-server > /dev/null 2>&1 && WIRED="$WIRED claude-code"
+fi
+
+if command -v gemini > /dev/null 2>&1; then
+  gemini config add music-mcp "uvx --from music-mcp music-mcp-server" > /dev/null 2>&1 && WIRED="$WIRED gemini-cli"
+fi
+
+if [ -d "$HOME/.cursor" ]; then
+  wire_json "$HOME/.cursor/mcp.json" > /dev/null 2>&1 && WIRED="$WIRED cursor"
+fi
+
+if [ -d "$HOME/Library/Application Support/Claude" ]; then
+  wire_json "$HOME/Library/Application Support/Claude/claude_desktop_config.json" > /dev/null 2>&1 && WIRED="$WIRED claude-desktop"
+fi
+
+echo -e "\${GREEN}Done.\${NC}"
+if [ -n "$WIRED" ]; then
+  echo -e "Wired into:\${WIRED}"
+else
+  echo "No supported agent found. Add manually:"
+  echo "Claude Code: claude mcp add --transport stdio music-mcp -- uvx --from music-mcp music-mcp-server"
+  echo "Cursor: open MCP settings and add: uvx --from music-mcp music-mcp-server"
+  echo "Gemini: gemini config add music-mcp \\"uvx --from music-mcp music-mcp-server\\""
+fi
+echo "Restart your agent and ask: \\"find a royalty-free ambient track, tell me its license and attribution.\\""
+
+curl -s -m 3 -X POST "https://${host}/telemetry" -H "Content-Type: application/json" -d "{\\"anonymous_id\\":\\"\$ANON_ID\\",\\"src\\":\\"$MUSIC_MCP_SRC\\",\\"install_outcome\\":\\"success\\",\\"os_name\\":\\"\$(uname -s)\\",\\"has_uv\\":true,\\"wired_clients\\":\\"\$WIRED\\"}" > /dev/null 2>&1 || true
 `;
 }
 
