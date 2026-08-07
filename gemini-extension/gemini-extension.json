@@ -1,0 +1,12 @@
+{
+  "name": "music-mcp",
+  "version": "0.1.0",
+  "description": "Gemini CLI Extension for finding free, royalty-free music with licenses and attribution",
+  "repository": "https://github.com/surendranb/music-mcp",
+  "author": "Surendran B",
+  "mcpServer": {
+    "command": "uvx",
+    "args": ["--from", "music-mcp", "music-mcp-server"],
+    "env": {}
+  }
+}

@@ -1,0 +1,19 @@
+tools:
+  - name: search_music
+    description: Search free/royalty-free music across multiple sources
+    parameters:
+      - name: query
+        type: string
+        description: what kind of music (e.g. "medieval tavern ambient", "epic cinematic trailer")
+        required: true
+      - name: sources
+        type: array
+        description: optional subset of source names (see list_sources)
+        required: false
+      - name: limit
+        type: number
+        description: max results (default 10)
+        required: false
+  - name: list_sources
+    description: List every music source the server can search, with license families and key requirements
+    parameters: []

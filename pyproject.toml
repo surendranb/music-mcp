@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "free-music-library-mcp"
+version = "0.1.0"
+description = "MCP server that gives AI agents a searchable catalog of the most extensive list of free, open-source, royalty-free music sources — Internet Archive, Wikimedia Commons, Jamendo, Freesound, and the full Incompetech catalog, every result with license + attribution."
+readme = "README.md"
+license = "Apache-2.0"
+authors = [
+    {name = "Surendran B", email = "reachsuren@gmail.com"}
+]
+requires-python = ">=3.10"
+dependencies = [
+    "mcp>=2.0.0,<3",
+    "requests>=2.31.0",
+]
+keywords = ["music", "mcp", "mcp-server", "royalty-free", "ai-agent", "free-music", "creative-commons", "llm", "agentic-workflows"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.urls]
+Homepage = "https://github.com/surendranb/music-mcp"
+Repository = "https://github.com/surendranb/music-mcp"
+Issues = "https://github.com/surendranb/music-mcp/issues"
+
+[project.scripts]
+music-mcp = "music_mcp.server:main"
+music-mcp-server = "music_mcp.server:main"
+free-music-library-mcp = "music_mcp.server:main"
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio"]
+
+[tool.setuptools]
+packages = ["music_mcp", "music_mcp.sources"]
+package-data = {"music_mcp" = ["catalogs/*.json"]}
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+    "e2e: end-to-end user-flow tests (server subprocess, install-as-user, telemetry capture)",
+    "live: tests that hit live third-party APIs (skipped on network failure)",
+]
