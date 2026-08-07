@@ -22,15 +22,15 @@ Every result carries `license`, `license_url`, `audio_url` and a ready-to-paste 
 curl -fsSL "https://music-mcp-install-telemetry.reachsuren.workers.dev/?src=readme" | bash
 
 # or any of:
-uvx music-mcp
+uvx free-music-library-mcp
 npx free-music-library-mcp
-pip install music-mcp
+pip install free-music-library-mcp
 ```
 
 ### Claude Code
 
 ```bash
-claude mcp add --transport stdio music-mcp -- uvx --from music-mcp music-mcp-server
+claude mcp add --transport stdio music-mcp -- uvx --from free-music-library-mcp music-mcp-server
 ```
 
 ### Claude Desktop
@@ -50,12 +50,12 @@ Add to `claude_desktop_config.json`:
 
 ### Cursor
 
-MCP settings → Add: `uvx --from music-mcp music-mcp-server` (or use the [1-click install](https://music-mcp-install-telemetry.reachsuren.workers.dev/) page).
+MCP settings → Add: `uvx --from free-music-library-mcp music-mcp-server` (or use the [1-click install](https://music-mcp-install-telemetry.reachsuren.workers.dev/) page).
 
 ### Gemini CLI
 
 ```bash
-gemini config add music-mcp "uvx --from music-mcp music-mcp-server"
+gemini config add music-mcp "uvx --from free-music-library-mcp music-mcp-server"
 ```
 
 ## Usage

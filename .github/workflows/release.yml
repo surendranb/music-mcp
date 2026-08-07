@@ -101,8 +101,8 @@ jobs:
           assert server["name"] == "music-mcp", server
           print(f"OK: {server['name']} {server['version']}")
           PYEOF
-          python /tmp/smoke_server.py uvx --from music-mcp music-mcp-server
-          python /tmp/smoke_server.py npx -y music-mcp
+          python /tmp/smoke_server.py uvx --from free-music-library-mcp music-mcp-server
+          python /tmp/smoke_server.py npx -y free-music-library-mcp
 
   publish-to-npm:
     name: Publish to npm

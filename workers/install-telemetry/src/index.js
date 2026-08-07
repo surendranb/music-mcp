@@ -284,14 +284,14 @@ function getSetupHtmlPage() {
     <div class="card">
       <h2><span class="step-num">1</span> Install</h2>
       <pre>curl -fsSL "https://music-mcp-install-telemetry.reachsuren.workers.dev/?src=setup" | bash</pre>
-      <p>Or manually: <code>uvx music-mcp</code> · <code>npx free-music-library-mcp</code> · <code>pip install music-mcp</code></p>
+      <p>Or manually: <code>uvx free-music-library-mcp</code> · <code>npx free-music-library-mcp</code> · <code>pip install free-music-library-mcp</code></p>
     </div>
 
     <div class="card">
       <h2><span class="step-num">2</span> Add to your agent</h2>
       <p><a class="btn" href="/go/cursor">Cursor 1-click</a></p>
-      <p>Claude Code: <code>claude mcp add --transport stdio music-mcp -- uvx --from music-mcp music-mcp-server</code></p>
-      <p>Gemini: <code>gemini config add music-mcp "uvx --from music-mcp music-mcp-server"</code></p>
+      <p>Claude Code: <code>claude mcp add --transport stdio music-mcp -- uvx --from free-music-library-mcp music-mcp-server</code></p>
+      <p>Gemini: <code>gemini config add music-mcp "uvx --from free-music-library-mcp music-mcp-server"</code></p>
     </div>
 
     <div class="card">
@@ -350,7 +350,7 @@ fi
 
 echo -e "\${GREEN}Installing music-mcp...\${NC}"
 uv tool install --force music-mcp
-uvx music-mcp --version > /dev/null 2>&1 || true
+uvx free-music-library-mcp --version > /dev/null 2>&1 || true
 
 # Wire into whatever harnesses are present — no prompts, nothing to remember.
 WIRED=""
@@ -374,7 +374,7 @@ if not isinstance(servers, dict):
     data["mcpServers"] = servers
 if "music-mcp" in servers:
     sys.exit(0)
-servers["music-mcp"] = {"command": "uvx", "args": ["--from", "music-mcp", "music-mcp-server"]}
+servers["music-mcp"] = {"command": "uvx", "args": ["--from", "free-music-library-mcp", "music-mcp-server"]}
 with open(path, "w") as f:
     json.dump(data, f, indent=2)
 print("ok")
@@ -382,11 +382,11 @@ PY
 }
 
 if command -v claude > /dev/null 2>&1; then
-  claude mcp add --transport stdio music-mcp -- uvx --from music-mcp music-mcp-server > /dev/null 2>&1 && WIRED="$WIRED claude-code"
+  claude mcp add --transport stdio music-mcp -- uvx --from free-music-library-mcp music-mcp-server > /dev/null 2>&1 && WIRED="$WIRED claude-code"
 fi
 
 if command -v gemini > /dev/null 2>&1; then
-  gemini config add music-mcp "uvx --from music-mcp music-mcp-server" > /dev/null 2>&1 && WIRED="$WIRED gemini-cli"
+  gemini config add music-mcp "uvx --from free-music-library-mcp music-mcp-server" > /dev/null 2>&1 && WIRED="$WIRED gemini-cli"
 fi
 
 if [ -d "$HOME/.cursor" ]; then
@@ -402,9 +402,9 @@ if [ -n "$WIRED" ]; then
   echo -e "Wired into:\${WIRED}"
 else
   echo "No supported agent found. Add manually:"
-  echo "Claude Code: claude mcp add --transport stdio music-mcp -- uvx --from music-mcp music-mcp-server"
-  echo "Cursor: open MCP settings and add: uvx --from music-mcp music-mcp-server"
-  echo "Gemini: gemini config add music-mcp \\"uvx --from music-mcp music-mcp-server\\""
+  echo "Claude Code: claude mcp add --transport stdio music-mcp -- uvx --from free-music-library-mcp music-mcp-server"
+  echo "Cursor: open MCP settings and add: uvx --from free-music-library-mcp music-mcp-server"
+  echo "Gemini: gemini config add music-mcp \\"uvx --from free-music-library-mcp music-mcp-server\\""
 fi
 echo "Restart your agent and ask: \\"find a royalty-free ambient track, tell me its license and attribution.\\""
 

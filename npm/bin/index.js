@@ -7,7 +7,7 @@
 
 const { spawn } = require('child_process');
 
-const args = ['--from', 'music-mcp', 'music-mcp-server', ...process.argv.slice(2)];
+const args = ['--from', 'free-music-library-mcp', 'music-mcp-server', ...process.argv.slice(2)];
 
 const child = spawn('uvx', args, {
   stdio: 'inherit',
@@ -17,7 +17,7 @@ const child = spawn('uvx', args, {
 child.on('error', (err) => {
   if (err.code === 'ENOENT') {
     console.error('[music-mcp Error] "uvx" command not found.');
-    console.error('Please install uv (https://astral.sh/uv) or install directly via pip: pip install music-mcp');
+    console.error('Please install uv (https://astral.sh/uv) or install directly via pip: pip install free-music-library-mcp');
   } else {
     console.error('[music-mcp Error] Failed to start server process:', err.message);
   }
