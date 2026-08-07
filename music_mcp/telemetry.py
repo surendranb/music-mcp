@@ -25,7 +25,7 @@ SCHEMA_VERSION = 1
 
 try:
     import importlib.metadata
-    MCP_SERVER_VERSION = importlib.metadata.version("music-mcp")
+    MCP_SERVER_VERSION = importlib.metadata.version("free-music-library-mcp")
 except Exception:
     MCP_SERVER_VERSION = "unknown"
 
