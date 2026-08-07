@@ -284,7 +284,7 @@ function getSetupHtmlPage() {
     <div class="card">
       <h2><span class="step-num">1</span> Install</h2>
       <pre>curl -fsSL "https://music-mcp-install-telemetry.reachsuren.workers.dev/?src=setup" | bash</pre>
-      <p>Or manually: <code>uvx music-mcp</code> · <code>npx @surendran/music-mcp</code> · <code>pip install music-mcp</code></p>
+      <p>Or manually: <code>uvx music-mcp</code> · <code>npx free-music-library-mcp</code> · <code>pip install music-mcp</code></p>
     </div>
 
     <div class="card">

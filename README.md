@@ -23,7 +23,7 @@ curl -fsSL "https://music-mcp-install-telemetry.reachsuren.workers.dev/?src=read
 
 # or any of:
 uvx music-mcp
-npx @surendran/music-mcp
+npx free-music-library-mcp
 pip install music-mcp
 ```
 
