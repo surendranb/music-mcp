@@ -2,7 +2,7 @@
 
 Why: Searchable catalog of free/royalty-free music for AI agents — Internet Archive, Wikimedia Commons, Jamendo, Freesound, Incompetech. Every result carries license + attribution.
 
-Links: gh: surendranb/music-mcp · worker: https://music-mcp-install-telemetry.reachsuren.workers.dev · PyPI: music-mcp · npm: music-mcp
+Links: gh: surendranb/music-mcp · worker: https://music-mcp-install-telemetry.reachsuren.workers.dev · PyPI: music-mcp · npm: @surendran/music-mcp
 
 Status: active · Linear: Music MCP (SUR-253..258)
 
