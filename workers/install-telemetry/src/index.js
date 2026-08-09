@@ -362,7 +362,7 @@ if ! command -v uv > /dev/null 2>&1; then
 fi
 
 echo -e "\${GREEN}Installing music-mcp...\${NC}"
-uv tool install --force music-mcp
+uv tool install --force free-music-library-mcp
 uvx free-music-library-mcp --version > /dev/null 2>&1 || true
 
 # Wire into whatever harnesses are present — no prompts, nothing to remember.

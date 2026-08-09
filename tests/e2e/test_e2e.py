@@ -136,7 +136,7 @@ async def test_end_user_install_and_tools(tmp_path):
 
     names, sources, hits = await _connect_and_run(_spawn(command=server_bin, args=[]))
 
-    assert set(names) >= {"search_music", "list_sources"}
+    assert set(names) >= {"search_music", "list_sources", "skills_list", "skill_read"}
     assert len(sources) == 5
     assert all(s["configured"] is False for s in sources
                if s["name"] in ("jamendo", "freesound"))
@@ -163,19 +163,113 @@ async def test_telemetry_events_flow(tmp_path):
             "server_first_install", "package_download", "mcp_started",
             "tools_listed", "tool_executed",
         ]), f"missing events, saw: {capture.event_names()}"
+        # session_end fires atexit, after the stdio connection closes
+        assert capture.wait_for_events(["session_end"], timeout=15), (
+            f"missing session_end, saw: {capture.event_names()}"
+        )
 
         blob = json.dumps(capture.payloads)
         for payload in capture.payloads:
             props = payload["properties"]
             assert payload["event"] in ("server_first_install", "package_download",
-                                        "mcp_started", "tools_listed", "tool_executed")
+                                        "mcp_started", "tools_listed", "tool_executed",
+                                        "session_end", "skill_read")
             assert props["mcp_server_name"] == "music-mcp"
             assert props.get("session_id", "").startswith("sess_")
-            assert props.get("schema_version") == 1
+            assert props.get("schema_version") == 2
+            assert "launch_channel" not in props, "v2 envelope must drop launch_channel"
+
+        # tool_executed carries the after-execution contract fields
+        tool_events = [p for p in capture.payloads if p["event"] == "tool_executed"]
+        assert tool_events, "no tool_executed captured"
+        by_tool = {p["properties"]["tool_name"]: p["properties"] for p in tool_events}
+        assert {"list_sources", "search_music"} <= set(by_tool)
+        for props in by_tool.values():
+            assert props["status"] == "success"
+            assert isinstance(props["latency_ms"], int)
+            assert isinstance(props["rows_returned"], int)
+            assert props["result_chars"] > 0
+        assert by_tool["list_sources"]["rows_returned"] == 5
+        assert by_tool["search_music"]["rows_returned"] == len(hits["hits"])
+        # search shape only — never the query text
+        assert by_tool["search_music"]["query_length"] == len("epic")
+        assert "epic" not in json.dumps(by_tool["search_music"]), "query value leaked"
+        # per-request dual-era client capture (the test client does a
+        # legacy-style initialize handshake, so identity must be present)
+        assert by_tool["search_music"].get("mcp_client_name"), "client identity missing"
+        assert by_tool["search_music"].get("mcp_protocol_version")
+
+        # tools_listed carries tool_count
+        listed = [p for p in capture.payloads if p["event"] == "tools_listed"]
+        assert listed and listed[0]["properties"]["tool_count"] == 4
+
+        # session_end carries the session rollup
+        ended = [p for p in capture.payloads if p["event"] == "session_end"]
+        props = ended[0]["properties"]
+        assert isinstance(props["session_duration_s"], int)
+        assert props["tool_sequence"] == ["list_sources", "search_music"]
+        assert props["tool_counts"] == {"list_sources": 1, "search_music": 1}
+        assert props["calls_total"] == 2
+
         assert str(tmp_path) not in blob, "local path leaked into telemetry"
         assert "Users/" not in blob, "home path leaked into telemetry"
         assert "127.0.0.1" not in blob, "gateway URL leaked into telemetry"
         assert "reachsuren@" not in blob, "contact email leaked"
+    finally:
+        capture.close()
+
+
+async def test_skills_flow(tmp_path):
+    """skills_list + skill_read work end-to-end and emit the skill_read event."""
+    capture = CaptureServer()
+    try:
+        from mcp import ClientSession
+        from mcp.client.stdio import stdio_client
+
+        params = _spawn({
+            "HOME": str(tmp_path),
+            "MUSIC_MCP_TELEMETRY_URL": capture.url,
+        })
+        async with stdio_client(params) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                skills = _extract_text(await session.call_tool("skills_list", {}))
+                skill = _extract_text(await session.call_tool(
+                    "skill_read", {"name": "interpreting-errors"}))
+                bad = _extract_text(await session.call_tool(
+                    "skill_read", {"name": "../../etc/passwd"}))
+
+        names = [s["name"] for s in skills["skills"]]
+        assert "interpreting-errors" in names
+        assert all(s["description"] for s in skills["skills"])
+        # runs from the repo checkout, so the local fallback guarantees content
+        # even when the GitHub raw fetch is unavailable
+        assert "skipped" in skill.get("content", ""), f"unexpected: {skill}"
+        assert "error" in bad, "path-traversal name must be rejected"
+
+        assert capture.wait_for_events(["skill_read"]), (
+            f"missing skill_read event, saw: {capture.event_names()}"
+        )
+        reads = [p for p in capture.payloads if p["event"] == "skill_read"]
+        assert reads[0]["properties"]["skill_name"] == "interpreting-errors"
+        assert isinstance(reads[0]["properties"]["fetch_ok"], bool)
+
+        # the traversal attempt still emits tool_executed with status=error
+        assert capture.wait_for_events(["tool_executed"])
+        errored = [p for p in capture.payloads
+                   if p["event"] == "tool_executed"
+                   and p["properties"]["tool_name"] == "skill_read"
+                   and p["properties"]["status"] == "error"]
+        end = time.time() + 10
+        while not errored and time.time() < end:
+            time.sleep(0.2)
+            errored = [p for p in capture.payloads
+                       if p["event"] == "tool_executed"
+                       and p["properties"]["tool_name"] == "skill_read"
+                       and p["properties"]["status"] == "error"]
+        assert errored, "error-shaped skill_read must emit status=error"
+        assert errored[0]["properties"]["error_category"] == "ValidationError"
+        assert errored[0]["properties"]["rows_returned"] == 0
     finally:
         capture.close()
 
@@ -193,6 +287,10 @@ async def test_telemetry_opt_out(tmp_path):
         assert "search_music" in names
         time.sleep(3)
         assert capture.payloads == [], f"expected no telemetry, got: {capture.event_names()}"
+        # Opt-out gates ALL side effects, not just the send: no identity dir.
+        assert not (tmp_path / ".music_mcp").exists(), (
+            "opt-out must not create ~/.music_mcp"
+        )
     finally:
         capture.close()
 

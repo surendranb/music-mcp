@@ -21,7 +21,7 @@ GATEWAY_URL = os.getenv(
     "MUSIC_MCP_TELEMETRY_URL",
     "https://music-mcp-install-telemetry.reachsuren.workers.dev/e",
 )
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2  # v2 (MCP Telemetry Standard): envelope drops launch_channel
 
 try:
     import importlib.metadata
@@ -48,21 +48,25 @@ INTERNAL_RUN = os.getenv("MUSIC_MCP_INTERNAL", "").lower() in ("1", "true", "yes
 
 def _init_anonymous_identity():
     """Random installation UUID in ~/.music_mcp/; created on first run, reset
-    by deleting the folder. Returns (installation_id, is_first_install)."""
+    by deleting the folder. Returns (installation_id, is_first_install).
+
+    Opt-out gates ALL side effects (Standard §1.4): when telemetry is disabled
+    an existing identity file may still be READ, but nothing is ever created
+    or written — no directory, no id file."""
     try:
         config_dir = Path.home() / ".music_mcp"
-        config_dir.mkdir(parents=True, exist_ok=True)
-
         id_file = config_dir / "installation_id"
         if id_file.exists():
-            installation_id = id_file.read_text(encoding="utf-8").strip()
-            is_first_install = False
-        else:
-            installation_id = f"inst_{uuid.uuid4()}"
-            id_file.write_text(installation_id, encoding="utf-8")
-            is_first_install = True
+            return id_file.read_text(encoding="utf-8").strip(), False
 
-        return installation_id, is_first_install
+        if TELEMETRY_DISABLED:
+            # non-persistent id; never touches the filesystem when opted out
+            return f"anon_{uuid.uuid4()}", False
+
+        config_dir.mkdir(parents=True, exist_ok=True)
+        installation_id = f"inst_{uuid.uuid4()}"
+        id_file.write_text(installation_id, encoding="utf-8")
+        return installation_id, True
     except Exception:
         # filesystem not writable: fall back to a non-persistent id
         return f"anon_{uuid.uuid4()}", False
@@ -159,8 +163,11 @@ def _normalize_client_name(raw):
 
 
 def _process_ancestor_names(max_depth=4):
-    """Parent-process command names (the agent sits above uvx/python)."""
+    """Parent-process command names (the agent sits above uvx/python).
+    Opt-out gates the `ps` subprocess walk entirely (Standard §1.4)."""
     names = []
+    if TELEMETRY_DISABLED:
+        return names
     try:
         if platform.system() not in ("Darwin", "Linux"):
             return names
@@ -289,43 +296,175 @@ def _raw_env_signals() -> dict:
 
 ENV_SIGNALS = _raw_env_signals()
 
-# Handshake clientInfo, populated on the first tool call (handshake is post-boot).
+# Client identity cache, filled from the first successful per-request capture.
+# Envelope FALLBACK only (events without a request in flight, e.g. mcp_started,
+# session_end): per-request props always win — send_telemetry merges these via
+# setdefault, so explicit capture_request() values take precedence.
 _RUNTIME_CLIENT = {
     "name": None, "version": None, "agent": None, "title": None,
     "description": None, "protocol_version": None, "caps": None, "caps_raw": None,
 }
 
 
-def capture_client_info(meta):
-    """Read clientInfo, protocol version, and capability flags from the handshake."""
-    if _RUNTIME_CLIENT["name"] is not None:
-        return
+def _meta_as_dict(meta):
+    """Per-request _meta may be a plain dict (2026 stateless clients) or a
+    pydantic model. Normalize to a dict, preserving io.modelcontextprotocol/* keys."""
+    if meta is None:
+        return {}
+    if isinstance(meta, dict):
+        return meta
+    extra = getattr(meta, "__pydantic_extra__", None) or getattr(meta, "model_extra", None)
+    if isinstance(extra, dict) and extra:
+        return extra
     try:
-        if not meta or not isinstance(meta, dict):
-            return
-        info = meta.get("io.modelcontextprotocol/clientInfo")
-        if not info or not isinstance(info, dict):
-            return
-        _RUNTIME_CLIENT["name"] = str(info.get("name", "unknown"))
-        _RUNTIME_CLIENT["version"] = str(info.get("version", "unknown"))
-        _RUNTIME_CLIENT["agent"] = _normalize_client_name(info.get("name"))
-        title = info.get("title")
-        _RUNTIME_CLIENT["title"] = str(title) if title else None
-        desc = info.get("description")
-        _RUNTIME_CLIENT["description"] = str(desc) if desc else None
-        pv = meta.get("io.modelcontextprotocol/protocolVersion")
-        _RUNTIME_CLIENT["protocol_version"] = str(pv) if pv else None
-        caps = meta.get("io.modelcontextprotocol/capabilities")
-        if caps and isinstance(caps, dict):
-            _RUNTIME_CLIENT["caps"] = {
-                "client_supports_sampling": "sampling" in caps,
-                "client_supports_roots": "roots" in caps,
-                "client_supports_elicitation": "elicitation" in caps,
-                "client_has_experimental_caps": bool(caps.get("experimental")),
-            }
-            _RUNTIME_CLIENT["caps_raw"] = caps
+        return meta.model_dump(by_alias=True)
+    except Exception:
+        return {}
+
+
+def _trace_ids(traceparent):
+    """Parse a SEP-414 traceparent into (trace_id, span_id)."""
+    try:
+        parts = str(traceparent).split("-")
+        if len(parts) >= 4:
+            return parts[1], parts[2]
     except Exception:
         pass
+    return None, None
+
+
+def capture_request(ctx):
+    """Per-request protocol capture, dual-era. Returns a props dict merged into
+    the event; NEVER relies on stored handshake state when per-request data
+    exists (per-request _meta > legacy session handshake > machine detection).
+
+    2026-07-28 stateless era: identity in per-request `_meta`
+    (io.modelcontextprotocol/clientInfo, protocolVersion, clientCapabilities).
+    Legacy era: initialize handshake on ctx.session.client_params (snake_case
+    in mcp 2.x, defensive camelCase for older shapes).
+
+    `ctx` may be the middleware ServerRequestContext or a tool Context that
+    wraps one as .request_context."""
+    props = {}
+    if ctx is None:
+        return props
+    try:
+        req = getattr(ctx, "request_context", None) or ctx
+        meta = _meta_as_dict(getattr(req, "meta", None))
+
+        # --- client identity ---
+        info = meta.get("io.modelcontextprotocol/clientInfo") if meta else None
+        if not (isinstance(info, dict) and info.get("name")):
+            # legacy fallback: the initialize handshake stored on the session
+            sess = getattr(req, "session", None)
+            params = getattr(sess, "client_params", None) if sess else None
+            ci = None
+            if params is not None:
+                ci = getattr(params, "client_info", None) or getattr(params, "clientInfo", None)
+            if ci is not None and getattr(ci, "name", None):
+                info = {
+                    "name": ci.name,
+                    "version": getattr(ci, "version", None),
+                    "title": getattr(ci, "title", None),
+                    "description": getattr(ci, "description", None),
+                }
+        if isinstance(info, dict) and info.get("name"):
+            props["mcp_client_name"] = str(info["name"])
+            props["agent_name"] = _normalize_client_name(info.get("name")) or AGENT_NAME
+            if info.get("version"):
+                props["mcp_client_version"] = str(info["version"])
+            if info.get("title"):
+                props["mcp_client_title"] = str(info["title"])
+            if info.get("description"):
+                props["mcp_client_description"] = str(info["description"])
+
+        # --- protocol version ---
+        proto = meta.get("io.modelcontextprotocol/protocolVersion") if meta else None
+        if not proto:
+            proto = getattr(req, "protocol_version", None)
+        if not proto:
+            sess = getattr(req, "session", None)
+            params = getattr(sess, "client_params", None) if sess else None
+            if params is not None:
+                proto = (getattr(params, "protocol_version", None)
+                         or getattr(params, "protocolVersion", None))
+        if proto:
+            props["mcp_protocol_version"] = str(proto)
+
+        # --- client capabilities ---
+        caps = None
+        if meta:
+            caps = (meta.get("io.modelcontextprotocol/clientCapabilities")
+                    or meta.get("io.modelcontextprotocol/capabilities"))
+        if not isinstance(caps, dict):
+            sess = getattr(req, "session", None)
+            params = getattr(sess, "client_params", None) if sess else None
+            caps_obj = getattr(params, "capabilities", None) if params is not None else None
+            if caps_obj is not None:
+                try:
+                    caps = caps_obj.model_dump(mode="json", exclude_none=True)
+                except Exception:
+                    caps = None
+        if isinstance(caps, dict):
+            props["client_supports_sampling"] = "sampling" in caps
+            props["client_supports_roots"] = "roots" in caps
+            props["client_supports_elicitation"] = "elicitation" in caps
+            props["client_has_experimental_caps"] = bool(caps.get("experimental"))
+
+        # --- trace correlation + request id ---
+        traceparent = meta.get("traceparent") if meta else None
+        if traceparent:
+            props["traceparent"] = str(traceparent)
+            trace_id, span_id = _trace_ids(traceparent)
+            if trace_id:
+                props["trace_id"] = trace_id
+            if span_id:
+                props["span_id"] = span_id
+
+        request_id = getattr(req, "request_id", None)
+        if request_id:
+            props["mcp_request_id"] = str(request_id)
+
+        _remember_client(props, caps if isinstance(caps, dict) else None)
+    except Exception:
+        pass
+    return props
+
+
+def _remember_client(props, caps_raw):
+    """First successful capture also fills the _RUNTIME_CLIENT fallback cache
+    (used only for events without a request in flight)."""
+    if _RUNTIME_CLIENT["name"] is not None or not props.get("mcp_client_name"):
+        return
+    _RUNTIME_CLIENT["name"] = props.get("mcp_client_name")
+    _RUNTIME_CLIENT["version"] = props.get("mcp_client_version")
+    _RUNTIME_CLIENT["agent"] = _normalize_client_name(props.get("mcp_client_name"))
+    _RUNTIME_CLIENT["title"] = props.get("mcp_client_title")
+    _RUNTIME_CLIENT["description"] = props.get("mcp_client_description")
+    _RUNTIME_CLIENT["protocol_version"] = props.get("mcp_protocol_version")
+    if caps_raw is not None:
+        _RUNTIME_CLIENT["caps"] = {
+            "client_supports_sampling": props.get("client_supports_sampling", False),
+            "client_supports_roots": props.get("client_supports_roots", False),
+            "client_supports_elicitation": props.get("client_supports_elicitation", False),
+            "client_has_experimental_caps": props.get("client_has_experimental_caps", False),
+        }
+        _RUNTIME_CLIENT["caps_raw"] = caps_raw
+
+
+# Session counters (NOT handshake state): ordered tool names (most recent 100),
+# per-tool counts, and total calls — reported once in session_end at exit.
+_SESSION_START = time.time()
+_TOOL_SEQUENCE = []
+_TOOL_COUNTS = {}
+
+
+def record_tool_call(tool_name):
+    """Called by the server's tool wrapper for every executed tool."""
+    _TOOL_SEQUENCE.append(tool_name)
+    if len(_TOOL_SEQUENCE) > 100:
+        _TOOL_SEQUENCE.pop(0)
+    _TOOL_COUNTS[tool_name] = _TOOL_COUNTS.get(tool_name, 0) + 1
 
 
 # In-flight sender threads, drained briefly at exit — short-lived sessions
@@ -343,9 +482,6 @@ def _drain_pending_sends(deadline_seconds=2.0):
             th.join(remaining)
         except Exception:
             pass
-
-
-atexit.register(_drain_pending_sends)
 
 
 def send_telemetry(event: str, properties: dict = None):
@@ -368,7 +504,6 @@ def send_telemetry(event: str, properties: dict = None):
                 "agent_name": _RUNTIME_CLIENT["agent"] or AGENT_NAME,
                 "run_context": RUN_CONTEXT,
                 "discovery_channel": DISCOVERY_CHANNEL,
-                "launch_channel": DISCOVERY_CHANNEL,
                 "raw_env": ENV_SIGNALS,
                 "session_id": SESSION_ID,
                 **(properties or {}),
@@ -415,6 +550,22 @@ def send_telemetry(event: str, properties: dict = None):
     _PENDING_SENDS.append(th)
     if len(_PENDING_SENDS) > 8:
         _PENDING_SENDS[:] = [t for t in _PENDING_SENDS if t.is_alive()]
+
+
+def _emit_session_end():
+    if TELEMETRY_DISABLED:
+        return
+    send_telemetry("session_end", {
+        "session_duration_s": int(time.time() - _SESSION_START),
+        "tool_sequence": list(_TOOL_SEQUENCE),
+        "tool_counts": dict(_TOOL_COUNTS),
+        "calls_total": sum(_TOOL_COUNTS.values()),
+    })
+
+
+# atexit is LIFO: session_end must fire before the drain joins senders.
+atexit.register(_drain_pending_sends)
+atexit.register(_emit_session_end)
 
 
 def _track_version_change():
