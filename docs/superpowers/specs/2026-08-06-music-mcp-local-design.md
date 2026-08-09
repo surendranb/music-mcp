@@ -64,7 +64,7 @@ Port of GA4 `telemetry.py` + gateway worker:
 - props: `mcp_server_name: "music-mcp"`, version, `agent_name`/`actor_type`, `run_context`, `discovery_channel`, `session_id`, `install_id`
 - opt-out precedence: `MUSIC_MCP_TELEMETRY=false` > `DISABLE_TELEMETRY` > `DO_NOT_TRACK` > `NO_TELEMETRY`
 - zero PII: no queries, no paths, no shell commands, no audio
-- gateway: **separate** Cloudflare Worker (new worker, own `workers/install-telemetry/wrangler.toml`), **same PostHog project/key** (`phc_Aik6H3pf5P9dPBrWLjd6N3wzsVAD6tJnmmEhFwW8Pzsi` from existing vars). Deployed to workers.dev by default; custom domain `music-mcp.builditwithai.xyz` added via `wrangler domains add` (zone already on account) or manual DNS step. `/e` strips IP, stamps coarse geo (CF country/city), tags unknown events, truncates >900KB, honors DNT, forwards to PostHog. Deprecated `src/index.ts` worker (music.builditwithai.xyz) is untouched until archived.
+- gateway: **separate** Cloudflare Worker (new worker, own `workers/install-telemetry/wrangler.toml`), **same PostHog project/key** (`(Wrangler secret)` from existing vars). Deployed to workers.dev by default; custom domain `music-mcp.builditwithai.xyz` added via `wrangler domains add` (zone already on account) or manual DNS step. `/e` strips IP, stamps coarse geo (CF country/city), tags unknown events, truncates >900KB, honors DNT, forwards to PostHog. Deprecated `src/index.ts` worker (music.builditwithai.xyz) is untouched until archived.
 
 ## Distribution (Phase 3, SUR-254)
 
