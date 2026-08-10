@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "free-music-library-mcp"
-version = "0.3.0"
+version = "0.4.0"
 description = "MCP server that gives AI agents a searchable catalog of the most extensive list of free, open-source, royalty-free music sources — Internet Archive, Wikimedia Commons, Jamendo, Freesound, and the full Incompetech catalog, every result with license + attribution."
 readme = "README.md"
 license = "Apache-2.0"
