@@ -105,7 +105,7 @@ def _extract_text(result):
     return json.loads(joined)
 
 
-async def _connect_and_run(params):
+async def _connect_and_run(params, intent=None):
     from mcp import ClientSession
     from mcp.client.stdio import stdio_client
 
@@ -119,6 +119,14 @@ async def _connect_and_run(params):
                 "search_music",
                 {"query": "epic", "sources": ["incompetech"], "limit": 3},
             )
+            if intent is not None:
+                # Identical search args plus intent: same rows/shape, so the
+                # only telemetry difference between the two calls is `intent`.
+                await session.call_tool(
+                    "search_music",
+                    {"query": "epic", "sources": ["incompetech"], "limit": 3,
+                     "intent": intent},
+                )
             return names, _extract_text(sources), _extract_text(hits)
 
 
@@ -152,11 +160,12 @@ async def test_telemetry_events_flow(tmp_path):
     """Fresh install: boot events + tool events reach the gateway, PII-free."""
     capture = CaptureServer()
     try:
+        intent = "calm background music for a podcast intro"
         params = _spawn({
             "HOME": str(tmp_path),
             "MUSIC_MCP_TELEMETRY_URL": capture.url,
         })
-        names, sources, hits = await _connect_and_run(params)
+        names, sources, hits = await _connect_and_run(params, intent=intent)
         assert "search_music" in names
 
         assert capture.wait_for_events([
@@ -184,7 +193,8 @@ async def test_telemetry_events_flow(tmp_path):
         assert tool_events, "no tool_executed captured"
         by_tool = {p["properties"]["tool_name"]: p["properties"] for p in tool_events}
         assert {"list_sources", "search_music"} <= set(by_tool)
-        for props in by_tool.values():
+        for p in tool_events:
+            props = p["properties"]
             assert props["status"] == "success"
             assert isinstance(props["latency_ms"], int)
             assert isinstance(props["rows_returned"], int)
@@ -199,6 +209,28 @@ async def test_telemetry_events_flow(tmp_path):
         assert by_tool["search_music"].get("mcp_client_name"), "client identity missing"
         assert by_tool["search_music"].get("mcp_protocol_version")
 
+        # intent capture: the call WITH intent carries it verbatim, the call
+        # WITHOUT intent must not carry the property at all
+        def _search_props():
+            return [p["properties"] for p in capture.payloads
+                    if p["event"] == "tool_executed"
+                    and p["properties"]["tool_name"] == "search_music"]
+        search_events = _search_props()
+        end = time.time() + 10
+        while len(search_events) < 2 and time.time() < end:
+            time.sleep(0.2)
+            search_events = _search_props()
+        assert len(search_events) == 2, (
+            f"expected 2 search_music events, saw {len(search_events)}"
+        )
+        with_intent = [p for p in search_events if "intent" in p]
+        without_intent = [p for p in search_events if "intent" not in p]
+        assert len(with_intent) == 1, "exactly one call sent intent"
+        assert with_intent[0]["intent"] == intent, "intent must arrive verbatim"
+        assert len(without_intent) == 1, (
+            "the call without intent must not carry the property"
+        )
+
         # tools_listed carries tool_count
         listed = [p for p in capture.payloads if p["event"] == "tools_listed"]
         assert listed and listed[0]["properties"]["tool_count"] == 4
@@ -207,9 +239,9 @@ async def test_telemetry_events_flow(tmp_path):
         ended = [p for p in capture.payloads if p["event"] == "session_end"]
         props = ended[0]["properties"]
         assert isinstance(props["session_duration_s"], int)
-        assert props["tool_sequence"] == ["list_sources", "search_music"]
-        assert props["tool_counts"] == {"list_sources": 1, "search_music": 1}
-        assert props["calls_total"] == 2
+        assert props["tool_sequence"] == ["list_sources", "search_music", "search_music"]
+        assert props["tool_counts"] == {"list_sources": 1, "search_music": 2}
+        assert props["calls_total"] == 3
 
         assert str(tmp_path) not in blob, "local path leaked into telemetry"
         assert "Users/" not in blob, "home path leaked into telemetry"
