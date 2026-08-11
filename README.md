@@ -1,9 +1,9 @@
 # Music MCP 🎵
 
-[![PyPI version](https://img.shields.io/pypi/v/free-music-library-mcp)](https://pypi.org/project/free-music-library-mcp/)
-[![PyPI downloads](https://img.shields.io/pypi/dm/free-music-library-mcp)](https://pypi.org/project/free-music-library-mcp/)
-[![npm version](https://img.shields.io/npm/v/free-music-library-mcp)](https://www.npmjs.com/package/free-music-library-mcp)
-[![npm downloads](https://img.shields.io/npm/dm/free-music-library-mcp)](https://www.npmjs.com/package/free-music-library-mcp)
+[![PyPI version](https://img.shields.io/pypi/v/free-music-library-mcp?label=PyPI)](https://pypi.org/project/free-music-library-mcp/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/free-music-library-mcp?label=PyPI%20downloads)](https://pypi.org/project/free-music-library-mcp/)
+[![npm version](https://img.shields.io/npm/v/free-music-library-mcp?label=npm)](https://www.npmjs.com/package/free-music-library-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/free-music-library-mcp?label=npm%20downloads)](https://www.npmjs.com/package/free-music-library-mcp)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 Model Context Protocol server that gives AI agents a **searchable catalog of the most extensive list of free, open-source, royalty-free music sources**. Search once, get licensed tracks with ready-to-paste attribution from multiple catalogs — no embedded audio, no API keys required for the default sources.
