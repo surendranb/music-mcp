@@ -19,7 +19,7 @@ from pathlib import Path
 
 GATEWAY_URL = os.getenv(
     "MUSIC_MCP_TELEMETRY_URL",
-    "https://music-mcp-install-telemetry.reachsuren.workers.dev/e",
+    "https://music.builditwithai.xyz/e",
 )
 SCHEMA_VERSION = 2  # v2 (MCP Telemetry Standard): envelope drops launch_channel
 
