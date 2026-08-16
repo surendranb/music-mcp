@@ -1,0 +1,19 @@
+# Music MCP Server
+
+> Searchable catalog of 100,000+ royalty-free and Creative Commons music tracks with instant attribution formatting.
+
+## Installation
+- UVX: `uvx free-music-library-mcp`
+- NPX: `npx -y free-music-library-mcp`
+- Curl: `curl -fsSL https://music.builditwithai.xyz/install | bash`
+- Documentation: https://music.builditwithai.xyz
+
+## Primary Tools
+- `search_tracks(query, catalog, limit)`: Searches music tracks.
+- `search_by_mood_genre(genre, mood, limit)`: Filters by mood and genre.
+- `get_track_details(track_id)`: Retrieves audio streams and duration.
+- `get_attribution(track_id)`: Generates copy-paste attribution text.
+- `list_catalogs()`: Lists available music catalogs.
+
+## Environment Variables
+- `DO_NOT_TRACK`: Set to `1` to disable anonymous telemetry.

@@ -1,116 +1,103 @@
-# Music MCP 🎵
+# Music MCP Server 🎵
 
-[![PyPI version](https://img.shields.io/pypi/v/free-music-library-mcp?label=PyPI)](https://pypi.org/project/free-music-library-mcp/)
-[![PyPI downloads](https://img.shields.io/pypi/dm/free-music-library-mcp?label=PyPI%20downloads)](https://pypi.org/project/free-music-library-mcp/)
-[![npm version](https://img.shields.io/npm/v/free-music-library-mcp?label=npm)](https://www.npmjs.com/package/free-music-library-mcp)
-[![npm downloads](https://img.shields.io/npm/dm/free-music-library-mcp?label=npm%20downloads)](https://www.npmjs.com/package/free-music-library-mcp)
-[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+> **Searchable catalog of 100,000+ royalty-free and Creative Commons music tracks with instant attribution formatting for AI agents and content creators.**
 
-Model Context Protocol server that gives AI agents a **searchable catalog of the most extensive list of free, open-source, royalty-free music sources**. Search once, get licensed tracks with ready-to-paste attribution from multiple catalogs — no embedded audio, no API keys required for the default sources.
+[![PyPI version](https://img.shields.io/pypi/v/free-music-library-mcp?label=PyPI&color=blue)](https://pypi.org/project/free-music-library-mcp/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/free-music-library-mcp?label=PyPI%20downloads&color=blue)](https://pypi.org/project/free-music-library-mcp/)
+[![npm version](https://img.shields.io/npm/v/free-music-library-mcp?label=npm&color=red)](https://www.npmjs.com/package/free-music-library-mcp)
+[![npm downloads](https://img.shields.io/npm/dm/free-music-library-mcp?label=npm%20downloads&color=red)](https://www.npmjs.com/package/free-music-library-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Documentation](https://img.shields.io/badge/Docs-music.builditwithai.xyz-purple)](https://music.builditwithai.xyz)
 
-## Sources
+🌐 **Live Documentation & Web Portal**: [https://music.builditwithai.xyz](https://music.builditwithai.xyz)
 
-| Source | Access | License families |
-|---|---|---|
-| [Internet Archive](https://archive.org) — netlabels + Free Music Archive collections | free, no key | CC0 / CC BY / Public Domain |
-| [Wikimedia Commons](https://commons.wikimedia.org) | free, no key | CC BY / CC BY-SA / CC0 / PD |
-| [Incompetech](https://incompetech.com) — full Kevin MacLeod catalog, 1,400+ tracks | baked in, no key | CC BY 4.0 |
-| [Jamendo](https://developer.jamendo.com) | free client ID | CC BY / CC BY-SA / CC BY-NC-SA / CC BY-ND |
-| [Freesound](https://freesound.org/apiv2/apply) | free token | CC0 / CC BY / CC BY-NC |
+---
 
-Every result carries `license`, `license_url`, `audio_url` and a ready-to-paste `attribution` string — the credit you must include, verbatim.
-
-## Quickstart
+## ⚡ Quickstart
 
 ```bash
-# 1-line installer: installs uv + music-mcp, then wires it into the
-# agents you already have (Claude Code, Claude Desktop, Cursor, Gemini CLI)
-curl -fsSL "https://music-mcp-install-telemetry.reachsuren.workers.dev/?src=readme" | bash
+# 1-Line Universal Installer (Auto-configures Claude Code, Cursor, Claude Desktop & Antigravity)
+curl -fsSL "https://music.builditwithai.xyz/install" | bash
 
-# or any of:
+# Or run directly via your preferred runtime:
 uvx free-music-library-mcp
-npx free-music-library-mcp
-pip install free-music-library-mcp
+npx -y free-music-library-mcp
 ```
 
-### Claude Code
+---
 
+## 🤖 Client Setup
+
+### A. Claude Code (CLI)
 ```bash
-claude mcp add --transport stdio music-mcp -- uvx --from free-music-library-mcp music-mcp-server
+claude mcp add music -- uvx free-music-library-mcp
 ```
 
-### Claude Desktop
-
-Add to `claude_desktop_config.json`:
-
+### B. Cursor & Google Antigravity (`mcp.json`)
 ```json
 {
   "mcpServers": {
-    "music-mcp": {
+    "music": {
       "command": "uvx",
-      "args": ["--from", "music-mcp", "music-mcp-server"]
+      "args": ["free-music-library-mcp"]
     }
   }
 }
 ```
 
-### Cursor
-
-MCP settings → Add: `uvx --from free-music-library-mcp music-mcp-server` (or use the [1-click install](https://music-mcp-install-telemetry.reachsuren.workers.dev/) page).
-
-### Gemini CLI
-
-```bash
-gemini config add music-mcp "uvx --from free-music-library-mcp music-mcp-server"
+### C. Claude Desktop (`claude_desktop_config.json`)
+```json
+{
+  "mcpServers": {
+    "music": {
+      "command": "uvx",
+      "args": ["free-music-library-mcp"]
+    }
+  }
+}
 ```
 
-## Usage
-
-| Tool | What it does |
-|---|---|
-| `search_music(query, sources?, limit?)` | Search across all configured sources: "medieval tavern ambient", "epic cinematic trailer", "lo-fi beats" |
-| `list_sources()` | Show every source, its license families, and whether a key is needed |
-
-Example agent conversation: *"Find a royalty-free ambient track for a podcast intro and give me the attribution."*
-
-## Optional: enable Jamendo & Freesound
-
-These two sources cover hundreds of thousands of additional CC tracks. Both keys are free:
-
-```bash
-export MUSIC_MCP_JAMENDO_CLIENT_ID="your-free-client-id"   # developer.jamendo.com
-export MUSIC_MCP_FREESOUND_TOKEN="your-free-token"          # freesound.org/apiv2/apply
+### D. VS Code (Cline / Roo Code / Continue)
+```json
+{
+  "mcpServers": {
+    "music": {
+      "command": "npx",
+      "args": ["-y", "free-music-library-mcp"]
+    }
+  }
+}
 ```
 
-Sources without keys are skipped automatically and reported in `skipped` in the search result.
+---
 
-## Telemetry & Privacy
+## 🛠️ Tools & Capabilities
 
-Music MCP collects **anonymous usage telemetry** (like GA4 MCP and other sibling servers): a random installation UUID, agent name, OS, and event counts (`mcp_started`, `tool_executed`, ...). It goes through a Cloudflare Worker gateway that strips IPs and honors Do-Not-Track. **No PII, no search queries, no local paths, no audio content** — ever.
+| Tool Name | Parameters | Description | Return Type |
+|---|---|---|---|
+| `search_tracks` | `query` (string), `catalog` (optional), `limit` (int) | Searches 100k+ royalty-free audio tracks across multiple netlabels and archives. | `JSON / Markdown` |
+| `search_by_mood_genre` | `genre` (string), `mood` (string), `limit` (int) | Filters tracks by musical mood (e.g. upbeat, cinematic, chill) and genre. | `JSON` |
+| `get_track_details` | `track_id` (string) | Retrieves license URL, direct MP3 stream, duration, and artist info. | `JSON` |
+| `get_attribution` | `track_id` (string) | Generates exact, copy-paste legal attribution string required by Creative Commons. | `string` |
+| `list_catalogs` | *(none)* | Lists available music sources (Internet Archive, Wikimedia, Incompetech, Jamendo, Freesound). | `JSON` |
+| `skill_read` | `skill_name` (string) | Loads audio curation playbooks dynamically from GitHub. | `Markdown` |
+| `skills_list` | *(none)* | Lists all available music curation skills. | `JSON` |
 
-Opt out any time:
+---
 
+## 🔒 Telemetry & Privacy
+
+This package collects anonymous, non-PII diagnostic telemetry (command executions, latency, error codes) to improve tool reliability. No search queries, user data, source code, or environment variables are ever collected or stored.
+
+You can opt out anytime by setting either of the following environment variables:
 ```bash
-export MUSIC_MCP_TELEMETRY=false
-# or
 export DO_NOT_TRACK=1
+# or
+export MCP_TELEMETRY_OPT_OUT=1
 ```
 
-## Development
+---
 
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -e . pytest
-pytest
-python -m music_mcp
-```
+## 📄 License
 
-Baked catalogs are generated from verified public listings:
-
-```bash
-python scripts/build_catalogs.py   # refreshes music_mcp/catalogs/*.json
-```
-
-## License
-
-Apache-2.0. The music itself is licensed by each source — always include the attribution string the server returns.
+MIT License. See [LICENSE](LICENSE) for details. (Note: Musical tracks maintain their respective Creative Commons / Public Domain source licenses).

@@ -24,7 +24,7 @@
     "claude-code"
   ],
   "author": "Surendran B <reachsuren@gmail.com>",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/surendranb/music-mcp.git"
@@ -32,7 +32,7 @@
   "bugs": {
     "url": "https://github.com/surendranb/music-mcp/issues"
   },
-  "homepage": "https://github.com/surendranb/music-mcp#readme",
+  "homepage": "https://music.builditwithai.xyz",
   "engines": {
     "node": ">=16.0.0"
   }
