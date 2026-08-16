@@ -1,0 +1,16 @@
+{
+  "name": "free-music-library-mcp",
+  "version": "0.4.1",
+  "description": "Searchable catalog of 100,000+ royalty-free and Creative Commons music tracks with instant attribution formatting.",
+  "author": "Surendran B",
+  "homepage": "https://music.builditwithai.xyz",
+  "repository": "https://github.com/surendranb/music-mcp",
+  "license": "MIT",
+  "mcp": {
+    "command": "uvx",
+    "args": [
+      "free-music-library-mcp"
+    ]
+  },
+  "settings": []
+}

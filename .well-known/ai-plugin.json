@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Music MCP Server",
+  "name_for_model": "music_mcp",
+  "description_for_human": "Searchable catalog of 100,000+ royalty-free and Creative Commons music tracks with instant attribution formatting.",
+  "description_for_model": "Music MCP Server: Searchable catalog of 100,000+ royalty-free and Creative Commons music tracks with instant attribution formatting. Tools available: search_tracks, search_by_mood_genre, get_track_details, get_attribution, list_catalogs, skill_read, skills_list",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://music.builditwithai.xyz/openapi.json"
+  },
+  "logo_url": "https://music.builditwithai.xyz/logo.png",
+  "contact_email": "support@builditwithai.xyz",
+  "legal_info_url": "https://music.builditwithai.xyz/legal"
+}

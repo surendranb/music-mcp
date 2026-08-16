@@ -1,0 +1,19 @@
+{
+  "name": "free-music-library-mcp",
+  "owner": {
+    "name": "Surendran B",
+    "url": "https://github.com/surendranb"
+  },
+  "metadata": {
+    "description": "Searchable catalog of 100,000+ royalty-free and Creative Commons music tracks with instant attribution formatting.",
+    "version": "0.4.1"
+  },
+  "plugins": [
+    {
+      "name": "free-music-library-mcp",
+      "source": "./",
+      "description": "Searchable catalog of 100,000+ royalty-free and Creative Commons music tracks with instant attribution formatting.",
+      "strict": false
+    }
+  ]
+}
