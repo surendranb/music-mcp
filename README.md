@@ -2,12 +2,11 @@
 
 > **Searchable catalog of 100,000+ royalty-free and Creative Commons music tracks with instant attribution formatting for AI agents and content creators.**
 
-[![PyPI version](https://img.shields.io/pypi/v/free-music-library-mcp?label=PyPI&color=blue)](https://pypi.org/project/free-music-library-mcp/)
-[![PyPI downloads](https://img.shields.io/pypi/dm/free-music-library-mcp?label=PyPI%20downloads&color=blue)](https://pypi.org/project/free-music-library-mcp/)
-[![npm version](https://img.shields.io/npm/v/free-music-library-mcp?label=npm&color=red)](https://www.npmjs.com/package/free-music-library-mcp)
-[![npm downloads](https://img.shields.io/npm/dm/free-music-library-mcp?label=npm%20downloads&color=red)](https://www.npmjs.com/package/free-music-library-mcp)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Documentation](https://img.shields.io/badge/Docs-music.builditwithai.xyz-purple)](https://music.builditwithai.xyz)
+[![CI](https://github.com/surendranb/music-mcp/actions/workflows/package-checks.yml/badge.svg)](https://github.com/surendranb/music-mcp/actions)
+[![PyPI version](https://img.shields.io/pypi/v/free-music-library-mcp.svg?style=flat-square&color=blue)](https://pypi.org/project/free-music-library-mcp/)
+[![npm version](https://img.shields.io/npm/v/free-music-library-mcp.svg?style=flat-square&color=red)](https://www.npmjs.com/package/free-music-library-mcp)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/surendranb/music-mcp/badge)](https://scorecard.dev/viewer/?site=github.com/surendranb/music-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 
 🌐 **Live Documentation & Web Portal**: [https://music.builditwithai.xyz](https://music.builditwithai.xyz)
 
