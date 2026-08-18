@@ -15,13 +15,15 @@
 ## ⚡ Quickstart
 
 ```bash
-# 1-Line Universal Installer (Auto-configures Claude Code, Cursor, Claude Desktop & Antigravity)
+# 1-Line Universal Installer (Auto-configures Claude Desktop, Cursor, Claude Code, Antigravity, VS Code, Zed, Windsurf)
 curl -fsSL "https://music.builditwithai.xyz/install" | bash
 
 # Or run directly via your preferred runtime:
 uvx free-music-library-mcp
 npx -y free-music-library-mcp
 ```
+
+---
 
 ---
 
