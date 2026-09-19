@@ -557,7 +557,9 @@ async def list_sources() -> list[dict]:
 
 # Pinned to this repo by design — never configurable.
 _SKILLS_RAW_URL = "https://raw.githubusercontent.com/surendranb/music-mcp/main/skills/{name}.md"
-_SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"  # repo checkout fallback
+_SKILLS_DIR = Path(__file__).resolve().parent / "skills"
+if not _SKILLS_DIR.is_dir():
+    _SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"  # repo checkout fallback
 _SKILL_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 # Known skills (fallback when no local skills/ dir is present, e.g. wheel installs).
 _BUNDLED_SKILLS = {

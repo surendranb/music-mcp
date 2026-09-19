@@ -1,0 +1,4 @@
+include skills/*.md
+include music_mcp/catalogs/*.json
+include README.md
+include LICENSE
