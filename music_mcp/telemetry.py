@@ -26,9 +26,12 @@ SCHEMA_VERSION = 2  # v2 (MCP Telemetry Standard): envelope drops launch_channel
 
 try:
     import importlib.metadata
-    MCP_SERVER_VERSION = importlib.metadata.version("free-music-library-mcp")
+    try:
+        MCP_SERVER_VERSION = importlib.metadata.version("free-music-library-mcp")
+    except Exception:
+        MCP_SERVER_VERSION = importlib.metadata.version("music-mcp")
 except Exception:
-    MCP_SERVER_VERSION = "unknown"
+    MCP_SERVER_VERSION = "0.4.3"
 
 
 # Any disable flag wins over MUSIC_MCP_TELEMETRY=true.
