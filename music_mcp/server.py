@@ -17,7 +17,6 @@ import urllib.request
 from pathlib import Path
 
 import pydantic_core
-from pydantic import BaseModel, Field
 
 from mcp.server.mcpserver import Context, MCPServer
 from mcp.types import Annotations, TextContent, ToolAnnotations
@@ -342,11 +341,8 @@ def _shape_search_result(result):
 
 def _surface_props(tool_name, base_props, func, args, kwargs, result,
                    error_category, error_message):
-    """Per-surface telemetry props (S3/S7/S8), read-only over the result:
+    """Per-surface telemetry props (S3/S8), read-only over the result:
     - brief_version: which versioned error brief this call's result carried.
-    - elicit_supported: at the key wall (an explicitly requested source was
-      skipped for a missing key), whether the client declared elicitation —
-      the reach metric for S7.
     - progress_updates_sent: how many progress notifications this call sent.
     """
     props = {}
@@ -364,16 +360,6 @@ def _surface_props(tool_name, base_props, func, args, kwargs, result,
                          if isinstance(s, dict) and s.get("reason") == "key_required"]
             if key_skips:
                 props["brief_version"] = BRIEF_KEY
-                requested = []
-                try:
-                    bound = inspect.signature(func).bind(*args, **kwargs)
-                    bound.apply_defaults()
-                    requested = bound.arguments.get("sources") or []
-                except Exception:
-                    pass
-                if requested and any(s.get("source") in requested for s in key_skips):
-                    props["elicit_supported"] = bool(
-                        base_props.get("client_supports_elicitation"))
     except Exception:
         pass
     return props
@@ -506,7 +492,7 @@ def _telemetry_tool(name=None, title=None, description=None, annotations=None,
 mcp.tool = _telemetry_tool
 
 
-# --- S3 briefs / S7 elicitation / S8 progress helpers for search_music ---
+# --- S3 briefs / S8 progress helpers for search_music ---
 
 _KEY_SIGNUP_RE = re.compile(r"free at ([^\s)]+)")
 
@@ -608,95 +594,6 @@ async def _search_with_progress(ctx, query, sources, limit):
     return result
 
 
-class _SourceApiKey(BaseModel):
-    api_key: str = Field(description=(
-        "The API key value. Used for this session only — never written to "
-        "disk and never sent anywhere except the source's own API."))
-
-
-# Sources already asked about this process — one elicitation per source per
-# session, never a nag loop.
-_ELICITED_SOURCES = set()
-
-
-def _emit_setup_flow(action, outcome):
-    """Recovery-funnel telemetry (ga4 setup_flow schema reuse: flow_branch /
-    elicit_action / flow_outcome). Outcomes only — the elicited key value is
-    NEVER sent."""
-    try:
-        send_telemetry("setup_flow", {
-            "flow_branch": "source_key",
-            "elicit_action": str(action) if action is not None else None,
-            "flow_outcome": outcome,
-            **capture_request(_CURRENT_REQUEST.get()),
-        })
-    except Exception:
-        pass
-
-
-async def _elicit_missing_source_keys(ctx, result, query, sources, limit):
-    """S7, elicitation at the wall: the user EXPLICITLY asked for a source and
-    it was skipped for a missing key. If (and only if) the client declared
-    elicitation support, ask for the key right there, apply it to this
-    process's environment (session-only: never persisted to disk, never sent
-    to telemetry), and retry the original search once. Clients without
-    elicitation get the S3 brief exactly as before. Any failure returns the
-    original result unchanged."""
-    from .sources import search_all
-
-    try:
-        key_skips = [e for e in (result.get("skipped") or [])
-                     if isinstance(e, dict) and e.get("reason") == "key_required"
-                     and e.get("source") in sources
-                     and e.get("source") not in _ELICITED_SOURCES]
-        if not key_skips:
-            return result
-        if not capture_request(_CURRENT_REQUEST.get()).get("client_supports_elicitation"):
-            return result
-
-        applied = []
-        for entry in key_skips:
-            name = entry["source"]
-            _ELICITED_SOURCES.add(name)
-            env_var, signup = _source_key_facts(name)
-            try:
-                r = await ctx.elicit(
-                    f"The {name} source you asked for needs a free API key and "
-                    f"was skipped. Paste your {env_var} value to use {name} for "
-                    f"THIS session only — it is never saved to disk and never "
-                    f"leaves this machine except to call {name} itself. Get one "
-                    f"free at {signup}. Decline to search without {name}.",
-                    _SourceApiKey,
-                )
-            except Exception:
-                # Client advertised elicitation but the ask failed — behave as
-                # a non-supporting client (the S3 brief is already in place).
-                _emit_setup_flow(None, "elicit_unsupported")
-                return result
-            action = getattr(r, "action", None)
-            if action != "accept" or getattr(r, "data", None) is None:
-                _emit_setup_flow(action, "paused")
-                continue
-            value = (r.data.api_key or "").strip()
-            if not value:
-                _emit_setup_flow(action, "invalid_input")
-                continue
-            os.environ[env_var] = value  # session-only; process env, no disk
-            applied.append(name)
-
-        if not applied:
-            return result
-        retry = search_all(query, sources, limit)
-        _apply_key_briefs(retry)
-        still_skipped = {e.get("source") for e in (retry.get("skipped") or [])}
-        for name in applied:
-            _emit_setup_flow("accept",
-                             "fixed" if name not in still_skipped else "still_broken")
-        return retry
-    except Exception:
-        return result
-
-
 @mcp.tool(title="Search free music",
           description="Search free/royalty-free music across multiple sources",
           annotations=ToolAnnotations(read_only_hint=True, idempotent_hint=True,
@@ -727,8 +624,6 @@ async def search_music(query: str, sources: list[str] | None = None,
     limit = max(1, min(int(limit), 50))
     result = await _search_with_progress(ctx, query, sources, limit)
     _apply_key_briefs(result)
-    if sources and ctx is not None:
-        result = await _elicit_missing_source_keys(ctx, result, query, sources, limit)
     return result
 
 

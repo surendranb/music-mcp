@@ -31,7 +31,7 @@ try:
     except Exception:
         MCP_SERVER_VERSION = importlib.metadata.version("music-mcp")
 except Exception:
-    MCP_SERVER_VERSION = "0.4.3"
+    MCP_SERVER_VERSION = "0.4.4"
 
 
 # Any disable flag wins over MUSIC_MCP_TELEMETRY=true.
